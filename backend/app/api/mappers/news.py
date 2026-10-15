@@ -9,7 +9,7 @@ def map_temas(answers: dict) -> list:
     # .items() da pares (tema, probabilidad); se ordenan por la probabilidad (posición 1).
     ordenados = sorted(probabilities.items(), key=lambda par: par[1], reverse=True)
 
-    return [[tema, round(prob, 2)] for tema, prob in ordenados]
+    return [[tema, round(prob, 2)] for tema, prob in ordenados][:5]
 
 def map_alertas(answers: dict) -> list:
     """Alertas de mayor a menor ...]."""
@@ -18,7 +18,7 @@ def map_alertas(answers: dict) -> list:
         for nombre, respuesta in answers.items()
         if nombre.startswith("alerta_")
     ]
-    return sorted(alertas, key=lambda par: par[1], reverse=True)
+    return sorted(alertas, key=lambda par: par[1], reverse=True)[:5]
 
 def map_news(answers: dict) -> dict:
     """Respuesta final de /analysis."""
