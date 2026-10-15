@@ -24,3 +24,14 @@ export interface News {
   temas: [string, number][];
   alertas: [string, number][];
 }
+
+export interface AnalysisRequest {
+  new: string
+  body: string;
+}
+
+export interface AnalysisResponse {
+  values: Record<LayerId, LayerReading>;
+  temas: [string, number][];
+  alertas: [string, number][];
+}
