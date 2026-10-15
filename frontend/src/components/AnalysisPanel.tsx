@@ -35,7 +35,7 @@ export function AnalysisPanel({ news, focus, onFocus }: Props) {
                 l.id === focus ? "border-foreground bg-accent" : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              <span className="size-2.5 rounded-sm" style={{ background: l.color }} aria-hidden="true" />
+              <span className="size-2 rounded-sm" style={{ background: l.color }} aria-hidden="true" />
               {l.name}
             </button>
           ))}

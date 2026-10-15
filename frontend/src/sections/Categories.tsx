@@ -59,15 +59,15 @@ export function Categories() {
 
         <div className="grid gap-10 lg:grid-cols-[2fr_3fr]">
           <div className="flex flex-col justify-center gap-2">
-            <h3 className="text-xl font-semibold">Porcentajes que suman 100</h3>
+            <h3 className="text-xl font-semibold">Temas y alertas</h3>
             <p className="text-muted-foreground text-md">
-              El tema y la intención no se oponen: se reparten. Una misma nota puede ser 55% economía, 30% política y 15% sociedad. Por eso no van como flechas sino como barras que siempre completan el total.
+              Los temas no se oponen: se reparten. Una misma nota puede ser 55% economía, 30% política y 15% sociedad, y entre todos suman 100%. Las alertas son distintas: cada una es la probabilidad de que el texto use esa técnica de manipulación, así que una nota puede tener varias altas a la vez o ninguna.
             </p>
           </div>
 
           <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
             <CompositionGroup title="Temas" items={sample.temas} />
-            <CompositionGroup title="Intención" items={sample.alertas} />
+            <CompositionGroup title="Alertas" items={sample.alertas} />
           </div>
         </div>
 
