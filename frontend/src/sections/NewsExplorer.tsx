@@ -4,7 +4,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { NEWS } from "@/data/news";
 import { cn } from "@/lib/utils";
-import type { LayerId } from "@/types";
+import type { AnalysisResponse, LayerId } from "@/types";
 import CompositionGroup from "@/components/CompositionGroup";
 import { postAnalysis } from "@/lib/api";
 
@@ -20,6 +20,8 @@ export function NewsExplorer() {
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -32,8 +34,8 @@ export function NewsExplorer() {
       try {
         setLoading(true);
         setError(null);
-        const result = await postAnalysis({ new: newTitle, body });
-        console.log(result);
+        setAnalysis(await postAnalysis({ new: newTitle, body }));
+        
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo analizar la noticia.");
       } finally {
@@ -41,6 +43,7 @@ export function NewsExplorer() {
       }
 
   };
+
 
   return (
     <section id="news" className="border-b border-border">
@@ -107,7 +110,11 @@ export function NewsExplorer() {
             <div className="grid gap-5 md:grid-cols-[400px_minmax(0,1fr)]">
               <div className="relative h-110 min-w-0 overflow-hidden rounded-xl border border-border bg-card">
                 <Suspense fallback={<p className="grid size-full place-items-center text-sm text-muted-foreground">Cargando escena…</p>}>
-                  <LayerScene values={news.values} focus={focus} onFocus={setFocus} />
+                  {
+                    analysis && (
+                      <LayerScene values={analysis.values} focus={focus} onFocus={setFocus} />
+                    )
+                  }
                 </Suspense>
                 <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-muted-foreground text-balance">
                   | - Arrastra para girar | - Rueda para acercar | - Toca una flecha para enfocar su capa
@@ -116,10 +123,12 @@ export function NewsExplorer() {
               <AnalysisPanel news={news} focus={focus} onFocus={setFocus} />
             </div>
 
-            <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
-              <CompositionGroup title="Temas" items={news.temas} />
-              <CompositionGroup title="Alertas" items={news.alertas} />
-            </div>
+              {analysis && (
+                <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
+                  <CompositionGroup title="Temas" items={analysis.temas} />
+                  <CompositionGroup title="Alertas" items={analysis.alertas} />
+                </div> 
+              )}
 
           </div>
         </div>
