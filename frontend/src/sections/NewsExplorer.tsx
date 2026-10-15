@@ -1,10 +1,12 @@
 import { lazy, Suspense, useState } from "react";
 import { AnalysisPanel } from "@/components/AnalysisPanel";
 import { SectionHeading } from "@/components/SectionHeading";
+import { buttonVariants } from "@/components/ui/button";
 import { NEWS } from "@/data/news";
 import { cn } from "@/lib/utils";
 import type { LayerId } from "@/types";
 import CompositionGroup from "@/components/CompositionGroup";
+import { postAnalysis } from "@/lib/api";
 
 const LayerScene = lazy(() => import("@/components/LayerScene").then((m) => ({ default: m.LayerScene })));
 
@@ -14,11 +16,67 @@ export function NewsExplorer() {
 
   const news = NEWS.find((n) => n.id === newsId)!;
 
+  const [newTitle, setNewTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (!newTitle.trim() || !body.trim()) {
+        alert("Por favor ingresa tanto el titular como el contenido de la noticia.");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await postAnalysis({ new: newTitle, body });
+        console.log(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "No se pudo analizar la noticia.");
+      } finally {
+        setLoading(false);
+      }
+
+  };
+
   return (
     <section id="news" className="border-b border-border">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 md:py-24">
         
         <SectionHeading title="NOTICIAS"></SectionHeading>
+
+        <form onSubmit={handleSubmit} className="mt-12 flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <input
+              type="text"
+              placeholder="Titular de la noticia"
+              aria-label="Titular de la noticia"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              className="h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[15px] font-medium placeholder:font-normal placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-0"
+            />
+            <button type="submit" disabled={loading || !newTitle.trim() || !body.trim()} className={buttonVariants({ size: "lg" })}>
+              {loading ? "Analizando…" : "Analizar"}
+            </button>
+          </div>
+          {
+            newTitle && (
+              <textarea
+                placeholder="Pega aquí el cuerpo de la noticia (mínimo 300 caracteres)"
+                aria-label="Cuerpo de la noticia"
+                rows={5}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                className="min-h-32 resize-y rounded-md border border-border bg-background px-3 py-2.5 text-sm leading-relaxed placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-0"
+              />
+            )
+          }
+          {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+        </form>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
           <ul className="grid content-start gap-1" aria-label="Noticias de ejemplo">
