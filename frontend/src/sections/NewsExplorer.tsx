@@ -60,7 +60,7 @@ export function NewsExplorer() {
 
             <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
               <CompositionGroup title="Temas" items={news.temas} />
-              <CompositionGroup title="Intención" items={news.intencion} />
+              <CompositionGroup title="Alertas" items={news.alertas} />
             </div>
 
           </div>

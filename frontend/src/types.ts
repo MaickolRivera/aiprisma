@@ -1,4 +1,4 @@
-export type LayerId = "politica" | "proposito" | "registro" | "contenido";
+export type LayerId = "politica" | "intencion" | "tono" | "sustento";
 
 export interface Layer {
   id: LayerId;
@@ -13,7 +13,6 @@ export interface LayerReading {
   x: number;
   y: number;
   c: number;
-  ev: [string, string];
 }
 
 export interface News {
@@ -23,5 +22,5 @@ export interface News {
   summary: string;
   values: Record<LayerId, LayerReading>;
   temas: [string, number][];
-  intencion: [string, number][];
+  alertas: [string, number][];
 }

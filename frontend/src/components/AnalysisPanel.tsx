@@ -57,15 +57,6 @@ export function AnalysisPanel({ news, focus, onFocus }: Props) {
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border" aria-hidden="true">
           <div className="h-full rounded-full transition-[width] duration-300" style={{ width: `${confidence}%`, background: layer.color }} />
         </div>
-
-        <h4 className="mt-6 text-sm font-semibold">Evidencia en el texto</h4>
-        <ul className="mt-3 grid gap-2.5">
-          {d.ev.map((e) => (
-            <li key={e} className="border-l-[3px] pl-3 text-sm leading-snug" style={{ borderColor: layer.color }}>
-              “{e}”
-            </li>
-          ))}
-        </ul>
       </div>
     </div>
   );

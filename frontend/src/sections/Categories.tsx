@@ -67,7 +67,7 @@ export function Categories() {
 
           <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
             <CompositionGroup title="Temas" items={sample.temas} />
-            <CompositionGroup title="Intención" items={sample.intencion} />
+            <CompositionGroup title="Intención" items={sample.alertas} />
           </div>
         </div>
 
