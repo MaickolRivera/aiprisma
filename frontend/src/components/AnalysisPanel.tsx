@@ -6,7 +6,7 @@ const card = "rounded-xl border border-border bg-card";
 
 export function LayerTabs({ focus, onFocus }: { focus: LayerId; onFocus: (id: LayerId) => void }) {
   return (
-    <div role="tablist" aria-label="Capa a detallar" className={cn(card, "flex flex-wrap justify-center gap-1.5 p-3")}>
+    <div role="tablist" aria-label="Capa a detallar" className={cn(card, "flex flex-wrap justify-center gap-4 p-3")}>
       {LAYERS.map((l) => (
         <button
           key={l.id}

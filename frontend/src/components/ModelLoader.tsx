@@ -15,7 +15,7 @@ export function ModelLoader({ status, error, cached, elapsed, onLoad }: Props) {
       {status === "ready" ? (
         <p>
           <span className="font-medium">Laya lista.</span>{" "}
-          <span className="text-muted-foreground">El análisis corre en tu navegador: el texto no sale de tu equipo.</span>
+          <span className="text-muted-foreground">Ya puedes ejecutar tu analisis en tu navegador!</span>
         </p>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
