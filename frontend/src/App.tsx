@@ -1,19 +1,15 @@
-import { Categories } from "@/sections/Categories";
 import { Footer } from "@/sections/Footer";
-import { Hero } from "@/sections/Hero";
-import { HowItWorks } from "@/sections/HowItWorks";
 import { Header } from "@/sections/Header";
 import { NewsExplorer } from "@/sections/NewsExplorer";
+import { ScrollStory } from "@/sections/ScrollStory";
 
 export default function App() {
   return (
     <>
       <Header />
       <main>
-        <Hero />
+        <ScrollStory />
         <NewsExplorer />
-        <Categories />
-        <HowItWorks />
       </main>
       <Footer />
     </>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 
 const PX = 10;
 
@@ -55,7 +55,10 @@ function Pixels({ map, x, y, mirror = false }: { map: string[]; x: number; y: nu
   );
 }
 
-export function EyeFollower({ className }: { className?: string }) {
+export type Gaze = { x: number; y: number } | null;
+
+// `gaze` (opcional): punto en la ventana al que mira el ojo; si es null, sigue al puntero
+export function EyeFollower({ className, gaze }: { className?: string; gaze?: RefObject<Gaze> }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pupilRef = useRef<SVGGElement>(null);
   const [closed, setClosed] = useState(false);
@@ -66,12 +69,20 @@ export function EyeFollower({ className }: { className?: string }) {
     if (!svg || !pupil) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let px: number | null = null, py = 0;
     let tx = 0, ty = 0, cx = 0, cy = 0, raf = 0;
 
     const onMove = (e: PointerEvent) => {
+      px = e.clientX;
+      py = e.clientY;
+    };
+
+    const aim = () => {
+      const g = gaze?.current ?? (px === null ? null : { x: px, y: py });
+      if (!g) return;
       const r = svg.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
+      const dx = g.x - (r.left + r.width / 2);
+      const dy = g.y - (r.top + r.height / 2);
       const d = Math.hypot(dx, dy) || 1;
       const reach = Math.min(1, d / 280); // cerca del ojo, la O se mueve menos
       tx = (dx / d) * 4 * reach; // en píxeles: hasta 4 a los lados
@@ -79,6 +90,7 @@ export function EyeFollower({ className }: { className?: string }) {
     };
 
     const loop = () => {
+      aim();
       const k = reduce ? 1 : 0.14;
       cx += (tx - cx) * k;
       cy += (ty - cy) * k;
@@ -111,7 +123,7 @@ export function EyeFollower({ className }: { className?: string }) {
       clearTimeout(blinkTimer);
       clearTimeout(openTimer);
     };
-  }, []);
+  }, [gaze]);
 
   return (
     <svg
