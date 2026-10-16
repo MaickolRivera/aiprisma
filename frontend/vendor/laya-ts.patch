@@ -1,0 +1,21 @@
+diff --git a/laya-ts/src/providers.ts b/laya-ts/src/providers.ts
+index fd614c8..dca1ca2 100644
+--- a/laya-ts/src/providers.ts
++++ b/laya-ts/src/providers.ts
+@@ -247,6 +247,16 @@ async function fetchArrayBuffer(
+   } catch {
+     cache = null;
+   }
++  // PRISMA PATCH: model files (.onnx / .onnx.data / .json) are served cache-first. Upstream is
++  // network-first, so every page load re-downloads ~1.3 GB (+34 MB tokenizer) and CacheStorage
++  // is only an offline fallback. Safe because the model URL is pinned to a commit (immutable).
++  if (hit && /\.(onnx|data|json)$/.test(url.split("?")[0])) {
++    try {
++      return await hit.arrayBuffer();
++    } catch {
++      /* unreadable cache entry: fall through to the network */
++    }
++  }
+   if (cache) {
+     try {
+       const res = await fetchWithRetry(url, { signal: opts?.signal ?? undefined });

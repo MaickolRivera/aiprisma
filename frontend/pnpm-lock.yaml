@@ -14,6 +14,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      laya-ts:
+        specifier: file:vendor/laya-ts-0.1.0.tgz
+        version: file:vendor/laya-ts-0.1.0.tgz
       lucide-react:
         specifier: ^1.52.0
         version: 1.52.0(@types/react@19.3.0)(react@19.3.0)
@@ -475,6 +478,10 @@ packages:
   jiti@2.7.0:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
+
+  laya-ts@file:vendor/laya-ts-0.1.0.tgz:
+    resolution: {integrity: sha512-lAOlMaPC7wTgU990MNCMt02zuINBHTcw4ewE3fy8A8khvdv50qvjYw3FsyM81LoNkCGyrxb41ehprtsfYv1OWw==, tarball: file:vendor/laya-ts-0.1.0.tgz}
+    version: 0.1.0
 
   lightningcss-android-arm64@1.32.0:
     resolution: {integrity: sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==}
@@ -985,6 +992,8 @@ snapshots:
   csstype@3.2.3: {}
 
   detect-libc@2.1.2: {}
+
+  laya-ts@file:vendor/laya-ts-0.1.0.tgz: {}
 
   enhanced-resolve@5.26.0:
     dependencies:
