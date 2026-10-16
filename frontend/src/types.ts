@@ -15,16 +15,6 @@ export interface LayerReading {
   c: number;
 }
 
-export interface News {
-  id: string;
-  outlet: string;
-  headline: string;
-  summary: string;
-  values: Record<LayerId, LayerReading>;
-  temas: [string, number][];
-  alertas: [string, number][];
-}
-
 export interface AnalysisRequest {
   new: string
   body: string;
@@ -34,4 +24,10 @@ export interface AnalysisResponse {
   values: Record<LayerId, LayerReading>;
   temas: [string, number][];
   alertas: [string, number][];
+}
+
+export interface News extends AnalysisResponse {
+  id: string;
+  headline: string;
+  body: string;
 }

@@ -4,9 +4,10 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { NEWS } from "@/data/news";
 import { cn } from "@/lib/utils";
-import type { AnalysisResponse, LayerId } from "@/types";
+import type { LayerId, News } from "@/types";
 import CompositionGroup from "@/components/CompositionGroup";
 import { ModelLoader } from "@/components/ModelLoader";
+import { NewsDescription } from "@/components/NewsDescription";
 import { analyze, ANALYSIS_MODE } from "@/lib/analysis";
 import { useLaya } from "@/lib/laya/useLaya";
 
@@ -16,16 +17,15 @@ export function NewsExplorer() {
   const [newsId, setNewsId] = useState(NEWS[0].id);
   const [focus, setFocus] = useState<LayerId>("politica");
 
-  const news = NEWS.find((n) => n.id === newsId)!;
+  const [userNews, setUserNews] = useState<News | null>(null);
+  const newsList = userNews ? [userNews, ...NEWS] : NEWS;
+  const news = newsList.find((n) => n.id === newsId)!;
 
   const [newTitle, setNewTitle] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
 
-  // Con ANALYSIS_MODE="browser" Laya corre en el navegador y hay que cargarla antes de analizar.
   const browserMode = ANALYSIS_MODE === "browser";
   const laya = useLaya();
 
@@ -40,8 +40,13 @@ export function NewsExplorer() {
       try {
         setLoading(true);
         setError(null);
-        setAnalysis(await analyze({ new: newTitle, body }));
-        
+        const result = await analyze({ new: newTitle, body });
+        const id = `usuario-${Date.now()}`;
+        setUserNews({ id, headline: newTitle.trim(), body: body.trim(), ...result });
+        setNewsId(id);
+        setNewTitle("");
+        setBody("");
+
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo analizar la noticia.");
       } finally {
@@ -98,8 +103,8 @@ export function NewsExplorer() {
         </form>
 
         <div className="mt-12 grid gap-8 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <ul className="grid content-start gap-1" aria-label="Noticias de ejemplo">
-            {NEWS.map((n) => (
+          <ul className="grid content-start gap-1" aria-label="Noticias">
+            {newsList.map((n) => (
               <li key={n.id}>
                 <button
                   type="button"
@@ -110,8 +115,8 @@ export function NewsExplorer() {
                     n.id === newsId ? "border-foreground bg-accent" : "border-transparent hover:bg-accent",
                   )}
                 >
-                  <span className="block text-[13px] text-muted-foreground">{n.outlet}</span>
-                  <span className="mt-1 block text-[15px] font-medium leading-snug">{n.headline}</span>
+                  <span className="block text-[15px] font-medium leading-snug">{n.headline}</span>
+                  <span className="mt-1 line-clamp-1 text-[13px] text-muted-foreground">{n.body}</span>
                 </button>
               </li>
             ))}
@@ -120,33 +125,25 @@ export function NewsExplorer() {
           <div className="min-w-0 flex flex-col gap-10">
             <div>
               <h3 className="text-xl font-semibold leading-snug tracking-tight">{news.headline}</h3>
-              <p className="text-sm text-primary/50">{news.summary}</p>
+              <NewsDescription key={news.id} text={news.body} />
             </div>
 
             <div className="grid gap-5 md:grid-cols-[400px_minmax(0,1fr)]">
               <div className="relative h-110 min-w-0 overflow-hidden rounded-xl border border-border bg-card">
                 <Suspense fallback={<p className="grid size-full place-items-center text-sm text-muted-foreground">Cargando escena…</p>}>
-                  {
-                    analysis && (
-                      <LayerScene values={analysis.values} focus={focus} onFocus={setFocus} />
-                    )
-                  }
+                  <LayerScene values={news.values} focus={focus} onFocus={setFocus} />
                 </Suspense>
                 <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-muted-foreground text-balance">
                   | - Arrastra para girar | - Rueda para acercar | - Toca una flecha para enfocar su capa
                 </p>
               </div>
-              {
-                analysis && (
-                  <div>
-                    <AnalysisPanel values={analysis.values} focus={focus} onFocus={setFocus} />
-                    <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
-                      <CompositionGroup title="Temas" items={analysis.temas} />
-                      <CompositionGroup title="Alertas" items={analysis.alertas} />
-                    </div> 
-                  </div>
-                )
-              }
+              <div>
+                <AnalysisPanel values={news.values} focus={focus} onFocus={setFocus} />
+                <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
+                  <CompositionGroup title="Temas" items={news.temas} />
+                  <CompositionGroup title="Alertas" items={news.alertas} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
