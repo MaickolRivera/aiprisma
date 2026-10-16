@@ -1,22 +1,63 @@
+<div align="center">
+
 # Prisma
 
-> El conocimiento es poder.
+*El conocimiento es poder.*
 
 Prisma descompone una noticia en capas para mostrar **cómo** te la están contando, no solo **qué** te cuentan. Pega un titular y su texto, y Prisma lo analiza con [Laya](https://github.com/NandhaKishorM/laya) para ubicarlo en cuatro planos, cada uno con su evidencia y su nivel de confianza.
 
-**Demo:** https://aiprisma.vercel.app
+[**Demo en vivo**](https://aiprisma.vercel.app)
 
-![Vista previa de Prisma](frontend/public/prisma_preview.webp)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-000000?logo=threedotjs&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)
+![ONNX Runtime](https://img.shields.io/badge/ONNX_Runtime-005CED?logo=onnx&logoColor=white)
+![Vercel](https://img.shields.io/badge/Desplegado_en-Vercel-000000?logo=vercel&logoColor=white)
+
+<img src="frontend/public/prisma_preview.webp" alt="Vista previa de Prisma" width="800">
+
+</div>
+
+---
 
 ## Contenido
 
-- [Qué analiza](#qué-analiza)
 - [Cómo funciona](#cómo-funciona)
+- [Qué analiza](#qué-analiza)
 - [Stack](#stack)
 - [Estructura](#estructura)
 - [Cómo ejecutarlo](#cómo-ejecutarlo)
 - [Despliegue](#despliegue)
 - [Límites](#límites)
+- [Autores](#autores)
+
+## Cómo funciona
+
+### Dos modos de análisis
+
+El modo se elige con `VITE_ANALYSIS_MODE`.
+
+| Modo | Dónde corre Laya | Cuándo usarlo |
+| --- | --- | --- |
+| `browser` (por defecto) | En el navegador de quien visita la página | Para alojar el sitio como estático y gratis, sin servidor de IA |
+| `api` | En el backend de FastAPI | Para desarrollo o si quieres centralizar el análisis |
+
+**Modo `browser`**
+
+- Usa [`laya-ts`](frontend/vendor/README.md) con [ONNX Runtime Web](https://onnxruntime.ai): WebGPU, o WASM si no hay una GPU compatible.
+- El modelo (`VITE_LAYA_MODEL_URL`, ~1.3 GB) se descarga **solo cuando el usuario pulsa "Descargar y activar Laya"**. Queda guardado en el navegador (CacheStorage), así que solo se descarga una vez.
+- La URL apunta a una exportación ONNX en Hugging Face fijada a un commit, no a `main`: como el navegador guarda el modelo en caché, no se enteraría de los cambios. Para no depender de esa copia, exporta la tuya con `laya-ts/scripts/export_onnx.py`, súbela a Hugging Face y cambia la variable.
+
+**Preguntas y conversión a capas.** Las preguntas que se le hacen a Laya y la conversión de sus respuestas a capas existen en dos lugares. **Si cambias una, cambia la otra.**
+
+| | Frontend (TypeScript) | Backend (Python) |
+| --- | --- | --- |
+| Preguntas | `frontend/src/lib/laya/questions.ts` | `backend/app/questions/laya.py` |
+| Conversión | `frontend/src/lib/laya/mapper.ts` | `backend/app/api/mappers/` |
 
 ## Qué analiza
 
@@ -40,34 +81,6 @@ Cada capa es un plano con dos ejes opuestos. Laya da un valor entre -100% y +100
 
 Prisma no es un verificador de datos ni un árbitro de la verdad. Una IA puede equivocarse o inclinarse sin querer, y las personas tampoco siempre coinciden al juzgar un sesgo. Por eso cada resultado muestra su nivel de confianza: para discutirlo, no para aceptarlo sin más.
 
-## Cómo funciona
-
-### La página
-
-1. **Introducción con scroll** (`ScrollStory`): un ojo "lee" un titular de ejemplo y, al bajar, la noticia se separa en una vista explosionada de sus cuatro capas, cada una a distinta velocidad. Los textos que acompañan el recorrido explican los pasos y las categorías.
-2. **Noticias** (`NewsExplorer`): un catálogo de noticias ya analizadas y un formulario para analizar una propia. El resultado se dibuja en una escena 3D (Three.js) que puedes girar, con la confianza, los temas y las alertas al lado.
-
-### Dos modos de análisis
-
-El modo se elige con `VITE_ANALYSIS_MODE`.
-
-| Modo | Dónde corre Laya | Cuándo usarlo |
-| --- | --- | --- |
-| `browser` (por defecto) | En el navegador de quien visita la página | Para alojar el sitio como estático y gratis, sin servidor de IA |
-| `api` | En el backend de FastAPI | Para desarrollo o si quieres centralizar el análisis |
-
-**Modo `browser`**
-
-- Usa [`laya-ts`](frontend/vendor/README.md) con [ONNX Runtime Web](https://onnxruntime.ai): WebGPU, o WASM si no hay una GPU compatible.
-- El modelo (`VITE_LAYA_MODEL_URL`, ~1.3 GB) se descarga **solo cuando el usuario pulsa "Descargar y activar Laya"**. Queda guardado en el navegador (CacheStorage), así que solo se descarga una vez.
-- La URL apunta a una exportación ONNX en Hugging Face fijada a un commit, no a `main`: como el navegador guarda el modelo en caché, no se enteraría de los cambios. Para no depender de esa copia, exporta la tuya con `laya-ts/scripts/export_onnx.py`, súbela a Hugging Face y cambia la variable.
-
-**Preguntas y conversión a capas.** Las preguntas que se le hacen a Laya y la conversión de sus respuestas a capas existen en dos lugares. **Si cambias una, cambia la otra.**
-
-| | Frontend (TypeScript) | Backend (Python) |
-| --- | --- | --- |
-| Preguntas | `frontend/src/lib/laya/questions.ts` | `backend/app/questions/laya.py` |
-| Conversión | `frontend/src/lib/laya/mapper.ts` | `backend/app/api/mappers/` |
 
 ## Stack
 
@@ -225,3 +238,10 @@ En modo `browser` el frontend es un sitio estático: se despliega en [Vercel](ht
 - **Primera carga pesada:** en modo `browser` el modelo pesa ~1.3 GB. Conviene usar WiFi y un computador, no un celular.
 - **Resultados del lado del cliente:** como la clasificación ocurre en el navegador, sus resultados no son confiables si algún día se guardan en una base de datos compartida. En ese caso habría que reclasificar en el servidor.
 - **La IA se equivoca:** los puntajes son una lectura del modelo, no un veredicto. Por eso cada resultado trae su nivel de confianza.
+
+## Autores
+
+Proyecto universitario desarrollado por:
+
+- **Maickol Rivera** ([@MaickolRivera](https://github.com/MaickolRivera))
+- **SergioAle** ([@SergiAle](https://github.com/SergiAle))
