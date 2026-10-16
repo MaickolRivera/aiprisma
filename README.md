@@ -2,66 +2,114 @@
 
 > El conocimiento es poder.
 
-Prisma descompone una noticia en capas para mostrar **cómo** te la están contando, no solo **qué** te cuentan. Cada texto se ubica en cuatro planos:
+Prisma descompone una noticia en capas para mostrar **cómo** te la están contando, no solo **qué** te cuentan. Pega un titular y su texto, y Prisma lo analiza con [Laya](https://github.com/NandhaKishorM/laya) para ubicarlo en cuatro planos, cada uno con su evidencia y su nivel de confianza.
+
+**Demo:** https://aiprisma.vercel.app
+
+![Vista previa de Prisma](frontend/public/prisma_preview.webp)
+
+## Contenido
+
+- [Qué analiza](#qué-analiza)
+- [Cómo funciona](#cómo-funciona)
+- [Stack](#stack)
+- [Estructura](#estructura)
+- [Cómo ejecutarlo](#cómo-ejecutarlo)
+- [Despliegue](#despliegue)
+- [Límites](#límites)
+
+## Qué analiza
+
+### Capas
+
+Cada capa es un plano con dos ejes opuestos. Laya da un valor entre -100% y +100% por eje, y la noticia queda como una flecha que sale del centro: una flecha larga es una inclinación fuerte; una corta, una noticia casi neutral en esa capa.
 
 | Capa | Ejes | Qué mide |
 | --- | --- | --- |
-| **Política** | izquierda ↔ derecha · libertario ↔ autoritario | Hacia dónde empuja el texto en lo económico y lo social |
-| **Intención** | informar ↔ persuadir · equilibrado ↔ de un solo lado | Si busca informar o convencer, y si da voz a varias partes |
-| **Tono** | sobrio ↔ sensacionalista · esperanza ↔ miedo/indignación | Cómo te quiere hacer sentir |
 | **Sustento** | hechos ↔ opinión · fuentes verificables ↔ sin fuentes | Qué tan respaldado está lo que dice |
+| **Tono** | sobrio ↔ sensacionalista · esperanza ↔ miedo | Cómo te quiere hacer sentir |
+| **Intención** | informar ↔ persuadir · equilibrado ↔ de un solo lado | Si busca informar o convencer, y si da voz a varias partes |
+| **Política** | izquierda ↔ derecha · libertario ↔ autoritario | Hacia dónde empuja el texto en lo económico y lo social |
 
-Además de la posición en cada plano, Prisma muestra la confianza de la lectura, los **temas** principales y **alertas** de manipulación (clickbait, lenguaje cargado, apelación al miedo, "nosotros contra ellos", ataque personal, generalización).
+### Temas y alertas
 
-## Estado del proyecto
+- **Temas:** se reparten y suman 100% (por ejemplo, 55% economía, 30% política y 15% sociedad).
+- **Alertas:** probabilidad de que el texto use cada técnica de manipulación: clickbait, lenguaje cargado, apelación al miedo, "nosotros contra ellos", ataque personal y generalización. Pueden estar varias altas a la vez, o ninguna.
 
-🚧 En desarrollo.
+### Qué no es
 
-- **Frontend:** funciona con noticias de ejemplo (`frontend/src/data/news.ts`) y todavía muestra las capas anteriores (Propósito, Registro, Contenido). Aún no está conectado al backend.
-- **Backend:** la API ya analiza noticias con [Laya](https://github.com/NandhaKishorM/laya) y devuelve las respuestas crudas del modelo. Falta convertirlas al formato que usa el frontend.
-- **Laya en el navegador:** el frontend puede analizar noticias sin backend, corriendo Laya en el equipo del usuario (ver abajo). Es el modo por defecto.
+Prisma no es un verificador de datos ni un árbitro de la verdad. Una IA puede equivocarse o inclinarse sin querer, y las personas tampoco siempre coinciden al juzgar un sesgo. Por eso cada resultado muestra su nivel de confianza: para discutirlo, no para aceptarlo sin más.
 
-## Laya en el navegador (sin servidor)
+## Cómo funciona
 
-Con `VITE_ANALYSIS_MODE=browser` (por defecto) el análisis corre en el navegador de quien visita la página, así que el sitio se puede alojar gratis como estático (Vercel) sin ningún servidor de IA.
+### La página
 
-- Usa [`laya-ts`](frontend/vendor/README.md) y [ONNX Runtime Web](https://onnxruntime.ai) (WebGPU, y WASM si no hay GPU compatible).
-- El modelo (`VITE_LAYA_MODEL_URL`, ~1.3 GB) se descarga **solo cuando el usuario pulsa "Descargar y activar Laya"** y queda guardado en el navegador (CacheStorage). Por defecto apunta a una exportación ONNX de terceros alojada en Hugging Face, fijada a un commit (no a `main`, porque el navegador guarda el modelo en caché y no se enteraría de cambios); para no depender de ella, exporta tu propia copia con `laya-ts/scripts/export_onnx.py`, súbela a tu cuenta de Hugging Face y cambia la variable.
-- Las preguntas y la conversión de respuestas a capas están portadas de Python a TypeScript en `frontend/src/lib/laya/` (`questions.ts` y `mapper.ts`, equivalentes a `backend/app/questions/laya.py` y `backend/app/api/mappers/`): si cambias una pregunta, cámbiala en ambos lados.
-- Con `VITE_ANALYSIS_MODE=api` se usa el backend de FastAPI como antes.
+1. **Introducción con scroll** (`ScrollStory`): un ojo "lee" un titular de ejemplo y, al bajar, la noticia se separa en una vista explosionada de sus cuatro capas, cada una a distinta velocidad. Los textos que acompañan el recorrido explican los pasos y las categorías.
+2. **Noticias** (`NewsExplorer`): un catálogo de noticias ya analizadas y un formulario para analizar una propia. El resultado se dibuja en una escena 3D (Three.js) que puedes girar, con la confianza, los temas y las alertas al lado.
 
-Límites a tener en cuenta: la primera carga es pesada (conviene WiFi y computador, no celular); como la clasificación ocurre en el cliente, sus resultados no son confiables si algún día se guardan en una base de datos compartida (habría que reclasificar en el servidor).
+### Dos modos de análisis
+
+El modo se elige con `VITE_ANALYSIS_MODE`.
+
+| Modo | Dónde corre Laya | Cuándo usarlo |
+| --- | --- | --- |
+| `browser` (por defecto) | En el navegador de quien visita la página | Para alojar el sitio como estático y gratis, sin servidor de IA |
+| `api` | En el backend de FastAPI | Para desarrollo o si quieres centralizar el análisis |
+
+**Modo `browser`**
+
+- Usa [`laya-ts`](frontend/vendor/README.md) con [ONNX Runtime Web](https://onnxruntime.ai): WebGPU, o WASM si no hay una GPU compatible.
+- El modelo (`VITE_LAYA_MODEL_URL`, ~1.3 GB) se descarga **solo cuando el usuario pulsa "Descargar y activar Laya"**. Queda guardado en el navegador (CacheStorage), así que solo se descarga una vez.
+- La URL apunta a una exportación ONNX en Hugging Face fijada a un commit, no a `main`: como el navegador guarda el modelo en caché, no se enteraría de los cambios. Para no depender de esa copia, exporta la tuya con `laya-ts/scripts/export_onnx.py`, súbela a Hugging Face y cambia la variable.
+
+**Preguntas y conversión a capas.** Las preguntas que se le hacen a Laya y la conversión de sus respuestas a capas existen en dos lugares. **Si cambias una, cambia la otra.**
+
+| | Frontend (TypeScript) | Backend (Python) |
+| --- | --- | --- |
+| Preguntas | `frontend/src/lib/laya/questions.ts` | `backend/app/questions/laya.py` |
+| Conversión | `frontend/src/lib/laya/mapper.ts` | `backend/app/api/mappers/` |
 
 ## Stack
+
+**Frontend**
 
 - [React 19](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
 - [Vite](https://vite.dev)
 - [Tailwind CSS 4](https://tailwindcss.com)
-- [Three.js](https://threejs.org) para la visualización 3D de las capas
+- [Three.js](https://threejs.org) para la escena 3D de las capas, y CSS 3D para la introducción
+- [laya-ts](frontend/vendor/README.md) + ONNX Runtime Web para el análisis en el navegador
 - [lucide-react](https://lucide.dev) para los íconos
 
-### Backend
+**Backend**
 
 - [Python](https://www.python.org) + [FastAPI](https://fastapi.tiangolo.com)
-- [Laya](https://github.com/NandhaKishorM/laya) (checkpoint multilingüe) para clasificar las noticias
+- [Laya](https://github.com/NandhaKishorM/laya) (checkpoint multilingüe)
+- [pytest](https://pytest.org) para los tests
 
 ## Estructura
 
 ```
 prisma/
 ├── frontend/
-│   ├── public/            # Archivos estáticos
+│   ├── public/               # Favicon e imagen de vista previa
+│   ├── vendor/               # Paquete laya-ts y su parche
 │   └── src/
-│       ├── components/    # Secciones de la página y componentes de UI
-│       ├── data/          # Definición de capas y noticias de ejemplo
-│       ├── lib/           # Utilidades
-│       └── types.ts       # Tipos compartidos
+│       ├── sections/         # Secciones de la página (Header, ScrollStory, NewsExplorer, Footer)
+│       ├── components/       # Escena 3D, ojo, planos, paneles y UI
+│       ├── data/             # Capas, etiquetas y noticias de ejemplo
+│       ├── lib/
+│       │   ├── laya/         # Laya en el navegador: motor, preguntas y conversión
+│       │   ├── analysis.ts   # Elige entre modo browser y api
+│       │   └── api.ts        # Cliente del backend
+│       └── types.ts          # Tipos compartidos
 └── backend/
     ├── app/
-    │   ├── main.py        # App de FastAPI, CORS y carga del modelo
-    │   ├── api/routes/    # Endpoints (/health, /analysis)
-    │   └── questions/     # Preguntas que se le hacen a Laya
-    ├── prueba_laya.py     # Script para probar las preguntas sin levantar la API
+    │   ├── main.py           # App de FastAPI, CORS y carga del modelo
+    │   ├── api/routes/       # Endpoints (/health, /analysis)
+    │   ├── api/mappers/      # Conversión de respuestas de Laya a capas, temas y alertas
+    │   └── questions/        # Preguntas que se le hacen a Laya
+    ├── tests/                # Tests de endpoints y mappers
+    ├── prueba_laya.py        # Prueba las preguntas sin levantar la API
     └── requirements.txt
 ```
 
@@ -71,20 +119,30 @@ prisma/
 
 - [Node.js](https://nodejs.org) 22 o superior
 - [pnpm](https://pnpm.io) (`npm install -g pnpm`)
-- [Python](https://www.python.org) 3.10 o superior (probado con 3.13)
-- Unos 2 GB libres en disco: la primera vez que arranca, el backend descarga el modelo de Laya (queda en la caché de Hugging Face, `~/.cache/huggingface`)
+- Solo para el backend:
+  - [Python](https://www.python.org) 3.10 o superior (probado con 3.13)
+  - Unos 2 GB libres en disco para el modelo de Laya, que se descarga la primera vez en `~/.cache/huggingface`
 
 ### Frontend
 
 ```bash
 cd frontend
+cp .env.example .env
 pnpm install
 pnpm dev
 ```
 
-La aplicación queda disponible en http://localhost:5173.
+La aplicación queda en http://localhost:5173.
 
-### Scripts disponibles
+#### Variables de entorno
+
+| Variable | Modo | Descripción |
+| --- | --- | --- |
+| `VITE_ANALYSIS_MODE` | — | `browser` (por defecto) o `api` |
+| `VITE_LAYA_MODEL_URL` | `browser` | Carpeta con `encoder.onnx`, `head.onnx`, `tokenizer.json` y `rl_agent_config.json`, fijada a un commit |
+| `VITE_API_URL_LOCAL` | `api` | URL del backend, por ejemplo `http://localhost:8000` |
+
+#### Scripts
 
 | Comando | Descripción |
 | --- | --- |
@@ -93,6 +151,8 @@ La aplicación queda disponible en http://localhost:5173.
 | `pnpm preview` | Sirve localmente la versión de producción |
 
 ### Backend
+
+Solo hace falta para el modo `api`.
 
 ```bash
 cd backend
@@ -118,18 +178,18 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-La API queda en http://localhost:8000. El modelo se carga una sola vez al arrancar, así que el servidor tarda unos segundos en estar listo (más la primera vez, por la descarga).
+La API queda en http://localhost:8000. El modelo se carga una sola vez al arrancar, así que tarda unos segundos en estar lista (más la primera vez, por la descarga).
 
-> Con `--reload` el modelo se vuelve a cargar cada vez que guardas un archivo. Si ves un `KeyboardInterrupt` en la terminal es por eso y no es un error.
+> Con `--reload` el modelo se vuelve a cargar cada vez que guardas un archivo. Si ves un `KeyboardInterrupt` en la terminal, es por eso y no es un error.
 
 #### Endpoints
 
 | Método | Ruta | Descripción |
 | --- | --- | --- |
 | `GET` | `/health` | Indica si la API está viva y si el modelo ya cargó (`model_loaded`) |
-| `POST` | `/analysis` | Analiza una noticia y devuelve las respuestas de Laya |
+| `POST` | `/analysis` | Analiza una noticia y devuelve sus capas, temas y alertas |
 
-Ejemplo de cuerpo para `/analysis` (`body` debe tener al menos 300 caracteres, si no la API responde `422`):
+Ejemplo de cuerpo para `/analysis`. El campo `body` debe tener al menos 300 caracteres; si no, la API responde `422`.
 
 ```json
 {
@@ -140,6 +200,13 @@ Ejemplo de cuerpo para `/analysis` (`body` debe tener al menos 300 caracteres, s
 
 La forma más fácil de probarla es la documentación interactiva en http://localhost:8000/docs. Recuerda reemplazar el texto de ejemplo (`"string"`) por una noticia real.
 
+#### Tests
+
+```bash
+cd backend
+pytest
+```
+
 #### Probar las preguntas sin la API
 
 Para ajustar las preguntas de `app/questions/laya.py` sin levantar el servidor:
@@ -148,3 +215,13 @@ Para ajustar las preguntas de `app/questions/laya.py` sin levantar el servidor:
 cd backend
 python prueba_laya.py
 ```
+
+## Despliegue
+
+En modo `browser` el frontend es un sitio estático: se despliega en [Vercel](https://vercel.com) (o cualquier hosting estático) con `frontend/` como raíz, `pnpm build` como comando de build y `dist/` como carpeta de salida. Configura `VITE_ANALYSIS_MODE` y `VITE_LAYA_MODEL_URL` en las variables de entorno del proyecto.
+
+## Límites
+
+- **Primera carga pesada:** en modo `browser` el modelo pesa ~1.3 GB. Conviene usar WiFi y un computador, no un celular.
+- **Resultados del lado del cliente:** como la clasificación ocurre en el navegador, sus resultados no son confiables si algún día se guardan en una base de datos compartida. En ese caso habría que reclasificar en el servidor.
+- **La IA se equivoca:** los puntajes son una lectura del modelo, no un veredicto. Por eso cada resultado trae su nivel de confianza.
