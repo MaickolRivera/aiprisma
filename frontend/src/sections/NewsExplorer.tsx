@@ -6,7 +6,9 @@ import { NEWS } from "@/data/news";
 import { cn } from "@/lib/utils";
 import type { AnalysisResponse, LayerId } from "@/types";
 import CompositionGroup from "@/components/CompositionGroup";
-import { postAnalysis } from "@/lib/api";
+import { ModelLoader } from "@/components/ModelLoader";
+import { analyze, ANALYSIS_MODE } from "@/lib/analysis";
+import { useLaya } from "@/lib/laya/useLaya";
 
 const LayerScene = lazy(() => import("@/components/LayerScene").then((m) => ({ default: m.LayerScene })));
 
@@ -23,6 +25,10 @@ export function NewsExplorer() {
   
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
 
+  // Con ANALYSIS_MODE="browser" Laya corre en el navegador y hay que cargarla antes de analizar.
+  const browserMode = ANALYSIS_MODE === "browser";
+  const laya = useLaya();
+
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
@@ -34,7 +40,7 @@ export function NewsExplorer() {
       try {
         setLoading(true);
         setError(null);
-        setAnalysis(await postAnalysis({ new: newTitle, body }));
+        setAnalysis(await analyze({ new: newTitle, body }));
         
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo analizar la noticia.");
@@ -51,7 +57,13 @@ export function NewsExplorer() {
         
         <SectionHeading title="NOTICIAS"></SectionHeading>
 
-        <form onSubmit={handleSubmit} className="mt-12 flex flex-col gap-3">
+        {browserMode && (
+          <div className="mt-12">
+            <ModelLoader status={laya.status} error={laya.error} cached={laya.cached} elapsed={laya.elapsed} onLoad={laya.load} />
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className={cn("flex flex-col gap-3", browserMode ? "mt-4" : "mt-12")}>
           <div className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
@@ -61,7 +73,11 @@ export function NewsExplorer() {
               onChange={(e) => setNewTitle(e.target.value)}
               className="h-10 min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-[15px] font-medium placeholder:font-normal placeholder:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-0"
             />
-            <button type="submit" disabled={loading || !newTitle.trim() || !body.trim()} className={buttonVariants({ size: "lg" })}>
+            <button
+              type="submit"
+              disabled={loading || !newTitle.trim() || !body.trim() || (browserMode && laya.status !== "ready")}
+              className={buttonVariants({ size: "lg" })}
+            >
               {loading ? "Analizando…" : "Analizar"}
             </button>
           </div>
