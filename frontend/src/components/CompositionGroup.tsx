@@ -3,8 +3,8 @@ import { LABELS } from "@/data/labels";
 export default function CompositionGroup({ title, items }: { title: string; items: [string, number][] }) {
   return (
     <div>
-      <h4 className="text-sm font-semibold text-muted-foreground">{title}</h4>
-      <ul className="mt-5 grid gap-2">
+      <h4 className="text-sm font-semibold text-muted-foreground border-b-2 pb-1 mb-5">{title}</h4>
+      <ul className="mt-2 grid gap-2">
         {items.map(([name, value]) => {
           const pct = Math.round(value * 100);
           return (

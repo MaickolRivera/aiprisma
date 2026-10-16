@@ -2,17 +2,17 @@ import type { News } from "@/types";
 
 export const NEWS: News[] = [
   {
-    id: "reforma-tributaria",
-    headline: "El Gobierno radica una reforma tributaria que sube el impuesto al patrimonio",
-    body: "El Ministerio de Hacienda radicó este martes en el Congreso un proyecto de reforma tributaria que busca recaudar 18 billones de pesos en 2027. La propuesta eleva del 1,5 % al 2,5 % el impuesto al patrimonio para quienes declaren más de 3.000 millones de pesos y elimina exenciones a dividendos. Según cifras del propio ministerio, la medida afectaría a cerca de 52.000 contribuyentes. El ministro defendió el proyecto como necesario para financiar programas sociales, mientras gremios empresariales y partidos de oposición advirtieron que podría frenar la inversión. Analistas consultados coinciden en que el texto sufrirá cambios durante su trámite, que comenzará en las comisiones económicas la próxima semana.",
+    id: "columna-carros",
+    headline: "Columna: es hora de sacar los carros a gasolina del centro de nuestras ciudades",
+    body: "Llevamos años aceptando como normal respirar humo en cada esquina del centro, y ya es momento de decir basta. Creo firmemente que las ciudades deberían prohibir la entrada de carros a gasolina a sus centros históricos antes de 2030. Quienes se oponen dicen que afectará al comercio, pero eso mismo se dijo en otras ciudades que hoy tienen calles más vivas, más seguras y con más clientes caminando. No se trata de castigar a nadie, sino de devolverle el espacio público a la gente. Las alcaldías deben tener el valor de decidir pensando en la salud de nuestros hijos y no en el próximo periodo electoral. El centro es de todos, no de los motores.",
     values: {
-      politica: { x: 0.4, y: 0.05, c: 0.09 },
-      intencion: { x: -0.97, y: 0.76, c: 0.93 },
-      tono: { x: -0.98, y: 0.0, c: 0.99 },
-      sustento: { x: 0.37, y: -0.99, c: 0.84 },
+      politica: { x: 0.16, y: 0.21, c: 0.19 },
+      intencion: { x: -0.92, y: -0.29, c: 0.8 },
+      tono: { x: -0.78, y: 0.02, c: 0.94 },
+      sustento: { x: -0.78, y: -0.97, c: 0.94 },
     },
-    temas: [["economia", 0.99], ["politica", 0.01], ["sociedad", 0.0], ["internacional", 0.0], ["salud", 0.0]],
-    alertas: [["nosotros_ellos", 0.09], ["generalizacion", 0.02], ["clickbait", 0.0], ["lenguaje_cargado", 0.0], ["miedo", 0.0]],
+    temas: [["seguridad", 0.52], ["politica", 0.21], ["sociedad", 0.12], ["economia", 0.07], ["medio_ambiente", 0.03]],
+    alertas: [["clickbait", 0.29], ["nosotros_ellos", 0.17], ["ataque_personal", 0.08], ["generalizacion", 0.05], ["miedo", 0.04]],
   },
   {
     id: "plan-seguridad",
@@ -54,16 +54,16 @@ export const NEWS: News[] = [
     alertas: [["clickbait", 0.0], ["lenguaje_cargado", 0.0], ["miedo", 0.0], ["nosotros_ellos", 0.0], ["ataque_personal", 0.0]],
   },
   {
-    id: "columna-carros",
-    headline: "Columna: es hora de sacar los carros a gasolina del centro de nuestras ciudades",
-    body: "Llevamos años aceptando como normal respirar humo en cada esquina del centro, y ya es momento de decir basta. Creo firmemente que las ciudades deberían prohibir la entrada de carros a gasolina a sus centros históricos antes de 2030. Quienes se oponen dicen que afectará al comercio, pero eso mismo se dijo en otras ciudades que hoy tienen calles más vivas, más seguras y con más clientes caminando. No se trata de castigar a nadie, sino de devolverle el espacio público a la gente. Las alcaldías deben tener el valor de decidir pensando en la salud de nuestros hijos y no en el próximo periodo electoral. El centro es de todos, no de los motores.",
+    id: "reforma-tributaria",
+    headline: "El Gobierno radica una reforma tributaria que sube el impuesto al patrimonio",
+    body: "El Ministerio de Hacienda radicó este martes en el Congreso un proyecto de reforma tributaria que busca recaudar 18 billones de pesos en 2027. La propuesta eleva del 1,5 % al 2,5 % el impuesto al patrimonio para quienes declaren más de 3.000 millones de pesos y elimina exenciones a dividendos. Según cifras del propio ministerio, la medida afectaría a cerca de 52.000 contribuyentes. El ministro defendió el proyecto como necesario para financiar programas sociales, mientras gremios empresariales y partidos de oposición advirtieron que podría frenar la inversión. Analistas consultados coinciden en que el texto sufrirá cambios durante su trámite, que comenzará en las comisiones económicas la próxima semana.",
     values: {
-      politica: { x: 0.16, y: 0.21, c: 0.19 },
-      intencion: { x: -0.92, y: -0.29, c: 0.8 },
-      tono: { x: -0.78, y: 0.02, c: 0.94 },
-      sustento: { x: -0.78, y: -0.97, c: 0.94 },
+      politica: { x: 0.4, y: 0.05, c: 0.09 },
+      intencion: { x: -0.97, y: 0.76, c: 0.93 },
+      tono: { x: -0.98, y: 0.0, c: 0.99 },
+      sustento: { x: 0.37, y: -0.99, c: 0.84 },
     },
-    temas: [["seguridad", 0.52], ["politica", 0.21], ["sociedad", 0.12], ["economia", 0.07], ["medio_ambiente", 0.03]],
-    alertas: [["clickbait", 0.29], ["nosotros_ellos", 0.17], ["ataque_personal", 0.08], ["generalizacion", 0.05], ["miedo", 0.04]],
+    temas: [["economia", 0.99], ["politica", 0.01], ["sociedad", 0.0], ["internacional", 0.0], ["salud", 0.0]],
+    alertas: [["nosotros_ellos", 0.09], ["generalizacion", 0.02], ["clickbait", 0.0], ["lenguaje_cargado", 0.0], ["miedo", 0.0]],
   },
 ];

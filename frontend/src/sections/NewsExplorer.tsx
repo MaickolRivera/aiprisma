@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { AnalysisPanel } from "@/components/AnalysisPanel";
+import { LayerConfidence, LayerTabs } from "@/components/AnalysisPanel";
 import { SectionHeading } from "@/components/SectionHeading";
 import { buttonVariants } from "@/components/ui/button";
 import { NEWS } from "@/data/news";
@@ -129,17 +129,21 @@ export function NewsExplorer() {
             </div>
 
             <div className="grid gap-5 md:grid-cols-[400px_minmax(0,1fr)]">
-              <div className="relative h-110 min-w-0 overflow-hidden rounded-xl border border-border bg-card">
-                <Suspense fallback={<p className="grid size-full place-items-center text-sm text-muted-foreground">Cargando escena…</p>}>
-                  <LayerScene values={news.values} focus={focus} onFocus={setFocus} />
-                </Suspense>
-                <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-muted-foreground text-balance">
-                  | - Arrastra para girar | - Rueda para acercar | - Toca una flecha para enfocar su capa
-                </p>
+              <div className="flex min-w-0 flex-col gap-5">
+                <LayerTabs focus={focus} onFocus={setFocus} />
+                <div className="relative h-100 min-w-0 overflow-hidden rounded-xl border border-border bg-card">
+                  <Suspense fallback={<p className="grid size-full place-items-center text-sm text-muted-foreground">Cargando escena…</p>}>
+                    <LayerScene values={news.values} focus={focus} onFocus={setFocus} />
+                  </Suspense>
+                  <p className="pointer-events-none absolute bottom-3 left-4 text-xs text-muted-foreground text-balance">
+                    | - Arrastra para girar | - Rueda para acercar | - Toca una flecha para enfocar su capa
+                  </p>
+                </div>
               </div>
-              <div>
-                <AnalysisPanel values={news.values} focus={focus} onFocus={setFocus} />
-                <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
+
+              <div className="flex flex-col gap-5">
+                <div className="flex gap-8 rounded-xl border border-border bg-card p-6 flex-col">
+                  <LayerConfidence values={news.values} focus={focus} />
                   <CompositionGroup title="Temas" items={news.temas} />
                   <CompositionGroup title="Alertas" items={news.alertas} />
                 </div>
