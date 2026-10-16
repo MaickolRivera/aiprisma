@@ -19,6 +19,18 @@ Además de la posición en cada plano, Prisma muestra la confianza de la lectura
 
 - **Frontend:** funciona con noticias de ejemplo (`frontend/src/data/news.ts`) y todavía muestra las capas anteriores (Propósito, Registro, Contenido). Aún no está conectado al backend.
 - **Backend:** la API ya analiza noticias con [Laya](https://github.com/NandhaKishorM/laya) y devuelve las respuestas crudas del modelo. Falta convertirlas al formato que usa el frontend.
+- **Laya en el navegador:** el frontend puede analizar noticias sin backend, corriendo Laya en el equipo del usuario (ver abajo). Es el modo por defecto.
+
+## Laya en el navegador (sin servidor)
+
+Con `VITE_ANALYSIS_MODE=browser` (por defecto) el análisis corre en el navegador de quien visita la página, así que el sitio se puede alojar gratis como estático (Vercel) sin ningún servidor de IA.
+
+- Usa [`laya-ts`](frontend/vendor/README.md) y [ONNX Runtime Web](https://onnxruntime.ai) (WebGPU, y WASM si no hay GPU compatible).
+- El modelo (`VITE_LAYA_MODEL_URL`, ~1.3 GB) se descarga **solo cuando el usuario pulsa "Descargar y activar Laya"** y queda guardado en el navegador (CacheStorage). Por defecto apunta a una exportación ONNX de terceros alojada en Hugging Face, fijada a un commit (no a `main`, porque el navegador guarda el modelo en caché y no se enteraría de cambios); para no depender de ella, exporta tu propia copia con `laya-ts/scripts/export_onnx.py`, súbela a tu cuenta de Hugging Face y cambia la variable.
+- Las preguntas y la conversión de respuestas a capas están portadas de Python a TypeScript en `frontend/src/lib/laya/` (`questions.ts` y `mapper.ts`, equivalentes a `backend/app/questions/laya.py` y `backend/app/api/mappers/`): si cambias una pregunta, cámbiala en ambos lados.
+- Con `VITE_ANALYSIS_MODE=api` se usa el backend de FastAPI como antes.
+
+Límites a tener en cuenta: la primera carga es pesada (conviene WiFi y computador, no celular); como la clasificación ocurre en el cliente, sus resultados no son confiables si algún día se guardan en una base de datos compartida (habría que reclasificar en el servidor).
 
 ## Stack
 
