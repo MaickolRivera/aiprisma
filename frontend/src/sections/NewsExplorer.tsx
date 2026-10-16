@@ -136,16 +136,18 @@ export function NewsExplorer() {
                   | - Arrastra para girar | - Rueda para acercar | - Toca una flecha para enfocar su capa
                 </p>
               </div>
-              <AnalysisPanel news={news} focus={focus} onFocus={setFocus} />
+              {
+                analysis && (
+                  <div>
+                    <AnalysisPanel values={analysis.values} focus={focus} onFocus={setFocus} />
+                    <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
+                      <CompositionGroup title="Temas" items={analysis.temas} />
+                      <CompositionGroup title="Alertas" items={analysis.alertas} />
+                    </div> 
+                  </div>
+                )
+              }
             </div>
-
-              {analysis && (
-                <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:grid-cols-2">
-                  <CompositionGroup title="Temas" items={analysis.temas} />
-                  <CompositionGroup title="Alertas" items={analysis.alertas} />
-                </div> 
-              )}
-
           </div>
         </div>
       </div>
