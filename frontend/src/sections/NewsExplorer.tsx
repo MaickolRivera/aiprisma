@@ -15,7 +15,7 @@ const LayerScene = lazy(() => import("@/components/LayerScene").then((m) => ({ d
 
 export function NewsExplorer() {
   const [newsId, setNewsId] = useState(NEWS[0].id);
-  const [focus, setFocus] = useState<LayerId>("politica");
+  const [focus, setFocus] = useState<LayerId>("sustento");
 
   const [userNews, setUserNews] = useState<News | null>(null);
   const newsList = userNews ? [userNews, ...NEWS] : NEWS;
