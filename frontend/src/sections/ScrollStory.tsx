@@ -92,6 +92,7 @@ export function ScrollStory() {
   const stageRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
+  const ctaRef = useRef<HTMLAnchorElement>(null);
   const eyeRef = useRef<HTMLDivElement>(null);
   const eyeSlotRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
@@ -115,6 +116,7 @@ export function ScrollStory() {
       const track = trackRef.current!, stage = stageRef.current!, stack = stackRef.current!;
       const title = titleRef.current!, eye = eyeRef.current!, card = cardRef.current!;
       const head = headRef.current!, scan = scanRef.current!, hint = hintRef.current!;
+      const cta = ctaRef.current!;
 
       const vw = stage.clientWidth, vh = stage.clientHeight;
       const r = track.getBoundingClientRect();
@@ -155,7 +157,8 @@ export function ScrollStory() {
 
       // Posición: al inicio la tarjeta va debajo del título (con el ojo al lado); luego se centra
       const cx = vw / 2 + (lg ? Math.min(vw * 0.18, 240) : -Math.min(28, vw * 0.07)) * side;
-      const top0 = Math.max(72, (vh - (Ht + 2 * g + Hc)) / 2);
+      const Hb = cta.offsetHeight, Wb = cta.offsetWidth;
+      const top0 = Math.max(72, (vh - (Ht + 2 * g + Hc + g + Hb)) / 2);
       const cy0 = top0 + Ht + 2 * g + Hc / 2;
       const cy = lerp(cy0, lg ? vh * 0.55 : vh * 0.4, move);
       const titleX = vw / 2 - Tw / 2;
@@ -171,6 +174,11 @@ export function ScrollStory() {
       title.style.transform = `translate(${titleX}px, ${top0 - 40 * titleOut}px)`;
       title.style.opacity = String(1 - titleOut);
       title.style.visibility = titleOut >= 1 ? "hidden" : "visible";
+
+      // Botón a las noticias: va debajo de la tarjeta y se va junto con el título
+      cta.style.transform = `translate(${vw / 2 - Wb / 2}px, ${cy0 + Hc / 2 + g - 40 * titleOut}px)`;
+      cta.style.opacity = String(1 - titleOut);
+      cta.style.visibility = titleOut >= 1 ? "hidden" : "visible";
       hint.style.opacity = String(1 - seg(p, 0, 0.03));
       hint.style.visibility = p >= 0.03 ? "hidden" : "visible";
 
@@ -290,7 +298,7 @@ export function ScrollStory() {
             </div>
           ))}
 
-          <div ref={cardRef} className="absolute inset-x-0 top-1/2 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
+          <div ref={cardRef} className="absolute -inset-x-8 top-1/2 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Forward className="size-3.5" aria-hidden="true" />
               Reenviado muchas veces
@@ -301,11 +309,10 @@ export function ScrollStory() {
                 className="pointer-events-none absolute -inset-x-2 top-0 h-0 border-b border-foreground/40 bg-foreground/5 opacity-0"
                 aria-hidden="true"
               />
-              <h3 ref={headRef} className="relative text-lg leading-snug font-semibold tracking-tight sm:text-xl">
+              <h3 ref={headRef} className="relative text-lg leading-snug font-semibold tracking-tight">
                 {sample.headline}
               </h3>
             </div>
-            <p className="text-xs text-muted-foreground">¿Es cierto? ¿Cómo te lo están contando?</p>
           </div>
         </div>
 
@@ -321,24 +328,20 @@ export function ScrollStory() {
               <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">{c.kicker}</p>
               <h2 className="mt-1.5 text-xl font-semibold tracking-tight sm:text-2xl">{c.title}</h2>
               <div className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">{c.body}</div>
-              {i === CAPTIONS.length - 1 && (
-                <a href="#news" tabIndex={i === step ? 0 : -1} className={cn(buttonVariants({ size: "lg" }), "pointer-events-auto mt-5")}>
-                  Analizar noticias
-                  <ArrowDown />
-                </a>
-              )}
             </div>
           ))}
         </div>
+
+        <a ref={ctaRef} href="#news" className={cn(buttonVariants({ size: "lg" }), "absolute mt-6 top-0 left-0 will-change-transform")}>
+          Analizar noticias
+          <ArrowDown />
+        </a>
 
         <div ref={hintRef} className="absolute inset-x-0 bottom-6 flex flex-col items-center gap-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             Desliza para ver cómo la lee
             <ArrowDown className="size-3.5 animate-bounce motion-reduce:animate-none" aria-hidden="true" />
           </span>
-          <a href="#news" className="underline-offset-4 hover:text-foreground hover:underline">
-            o ve directo a las noticias
-          </a>
         </div>
       </div>
     </section>
