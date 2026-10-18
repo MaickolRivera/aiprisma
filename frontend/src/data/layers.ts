@@ -7,7 +7,6 @@ export const LAYERS: Layer[] = [
     color: "#25A07A",
     x: ["hechos", "opinión"],
     y: ["fuentes verificables", "sin fuentes"],
-    description: "Qué tan respaldado está: hechos u opinión, y si cita fuentes verificables.",
   },
   {
     id: "tono",
@@ -15,7 +14,6 @@ export const LAYERS: Layer[] = [
     color: "#E3A512",
     x: ["sobrio", "sensacionalista"],
     y: ["esperanza", "miedo"],
-    description: "Cómo te quiere hacer sentir: sobrio o exagerado, esperanza o miedo.",
   },
   {
     id: "intencion",
@@ -23,7 +21,6 @@ export const LAYERS: Layer[] = [
     color: "#3D7BE0",
     x: ["informar", "persuadir"],
     y: ["equilibrado", "de un solo lado"],
-    description: "Si busca informar o convencer, y si da voz a varias partes.",
   },
   {
     id: "politica",
@@ -31,7 +28,6 @@ export const LAYERS: Layer[] = [
     color: "#E2574C",
     x: ["izquierda", "derecha"],
     y: ["libertario", "autoritario"],
-    description: "Hacia dónde empuja el texto en lo económico y en lo social.",
   },
 
 ];

@@ -13,9 +13,9 @@ const sample = NEWS.find((n) => n.id === "plan-seguridad") ?? NEWS[0];
 // Momentos del recorrido, como fracción del scroll de la sección (0 → 1)
 const READ: [number, number] = [0.08, 0.27]; // el ojo lee el titular
 const EXPLODE: [number, number] = [0.28, 0.4]; // el titular se separa en capas
-const LAYERS_AT = 0.47; // foco en la primera capa
-const LAYER_STEP = 0.06; // cuánto dura el foco en cada capa
-const TOPICS_AT = LAYERS_AT + LAYERS.length * LAYER_STEP;
+const CATEGORIES_AT = 0.4; // desde "Categorías"…
+const NOT_AT = 0.81; // …hasta "Qué no es", el foco recorre las capas una por una
+const LAYER_STEP = (NOT_AT - CATEGORIES_AT) / LAYERS.length; // cuánto dura el foco en cada capa
 
 const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const seg = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
@@ -49,33 +49,13 @@ const CAPTIONS: Caption[] = [
     body: "El resultado se dibuja como flechas sobre planos apilados. Cada flecha indica hacia dónde se inclina la noticia en una dimensión.",
   },
   {
-    at: 0.4,
+    at: CATEGORIES_AT,
     kicker: "Categorías",
     title: "Capas: ejes que se contrarrestan",
     body: "Cada capa es un plano con dos ejes y un extremo opuesto en cada uno. Laya da un valor entre -100% y +100% por eje. Una flecha larga significa una inclinación fuerte; una corta, una noticia casi neutral en esa capa.",
   },
-  ...LAYERS.map<Caption>((l, i) => ({
-    at: LAYERS_AT + i * LAYER_STEP,
-    kicker: `Capa ${i + 1} de ${LAYERS.length}`,
-    title: (
-      <span className="inline-flex items-center gap-2">
-        <span className="size-3 rounded-sm" style={{ background: l.color }} aria-hidden="true" />
-        {l.name}
-      </span>
-    ),
-    body: (
-      <>
-        <p>{l.description}</p>
-        <p className="mt-3 font-mono text-xs text-foreground">
-          {l.x[0]} ↔ {l.x[1]}
-          <br />
-          {l.y[0]} ↔ {l.y[1]}
-        </p>
-      </>
-    ),
-  })),
   {
-    at: TOPICS_AT,
+    at: 0.53,
     kicker: "Categorías",
     title: "Temas y alertas",
     body: (
@@ -94,13 +74,13 @@ const CAPTIONS: Caption[] = [
     ),
   },
   {
-    at: 0.82,
+    at: 0.67,
     kicker: "Qué es Prisma",
     title: "Un prisma para las noticias",
     body: "Como un prisma que separa la luz blanca en colores, descompone una noticia en sus partes para que puedas compararlas y notar patrones: qué medios empujan siempre hacia el mismo lado y qué temas llegan con miedo.",
   },
   {
-    at: 0.91,
+    at: NOT_AT,
     kicker: "Qué no es",
     title: "No es un árbitro de la verdad",
     body: "Una IA puede equivocarse o inclinarse sin querer, y las personas tampoco siempre coinciden al juzgar un sesgo. Por eso cada resultado trae su evidencia y su nivel de confianza, para que lo discutas en vez de aceptarlo sin más.",
@@ -144,7 +124,7 @@ export function ScrollStory() {
       // Solo re-renderiza cuando cambia el subtítulo o la capa en foco
       let s = -1;
       CAPTIONS.forEach((c, i) => { if (p >= c.at) s = i; });
-      const f = p >= LAYERS_AT && p < TOPICS_AT ? Math.floor((p - LAYERS_AT) / LAYER_STEP) : -1;
+      const f = p >= CATEGORIES_AT && p < NOT_AT ? Math.floor((p - CATEGORIES_AT) / LAYER_STEP) : -1;
       setStep(s);
       setFocus(f);
 
@@ -157,8 +137,8 @@ export function ScrollStory() {
       const side = ease(seg(p, 0.03, 0.08)); // entra la columna de subtítulos
       const move = ease(seg(p, READ[0], EXPLODE[1]));
       const ex = ease(seg(p, ...EXPLODE));
-      const drift = reduce ? 0 : seg(p, EXPLODE[1], TOPICS_AT);
-      const settle = seg(p, TOPICS_AT, TOPICS_AT + 0.08);
+      const drift = reduce ? 0 : seg(p, EXPLODE[1], NOT_AT);
+      const settle = seg(p, NOT_AT, NOT_AT + 0.08);
 
       // Tamaño y ángulo de la pila
       const sc = lerp(1, lg ? 0.88 : sm ? 0.76 : 0.6, move);
@@ -251,7 +231,7 @@ export function ScrollStory() {
   }, []);
 
   return (
-    <section ref={trackRef} aria-label="Cómo Prisma lee una noticia" className="relative h-[800svh] border-b border-border">
+    <section ref={trackRef} aria-label="Cómo Prisma lee una noticia" className="relative h-[680svh] border-b border-border">
       {/* anclas del menú, ubicadas en su punto del recorrido */}
       <span id="how-it-works" className="absolute" style={{ top: "calc(0.075 * (100% - 100svh))" }} />
       <span id="categories" className="absolute" style={{ top: "calc(0.405 * (100% - 100svh))" }} />

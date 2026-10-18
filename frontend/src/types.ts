@@ -6,7 +6,6 @@ export interface Layer {
   color: string;
   x: [string, string];
   y: [string, string];
-  description: string;
 }
 
 export interface LayerReading {
