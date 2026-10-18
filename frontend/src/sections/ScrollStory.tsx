@@ -1,91 +1,51 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { ArrowDown, Forward } from "lucide-react";
-import CompositionGroup from "@/components/CompositionGroup";
 import { EyeFollower, type Gaze } from "@/components/EyeFollower";
 import { MiniPlane } from "@/components/MiniPlane";
 import { buttonVariants } from "@/components/ui/button";
 import { LAYERS } from "@/data/layers";
-import { NEWS } from "@/data/news";
+import { CAPTIONS, MENU_ANCHORS, STORY_NEWS as sample, TIMELINE as T } from "@/data/story";
+import { clamp, ease, lerp, seg } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 
-const sample = NEWS.find((n) => n.id === "plan-seguridad") ?? NEWS[0];
+const LAYER_STEP = (T.not - T.categories) / LAYERS.length; // cuánto dura el foco en cada capa
+const GAP = 20; // separación entre título, tarjeta y ojo
+const CTA_GAP = 44; // separación entre la tarjeta y el botón
 
-// Momentos del recorrido, como fracción del scroll de la sección (0 → 1)
-const READ: [number, number] = [0.08, 0.27]; // el ojo lee el titular
-const EXPLODE: [number, number] = [0.28, 0.4]; // el titular se separa en capas
-const CATEGORIES_AT = 0.4; // desde "Categorías"…
-const NOT_AT = 0.81; // …hasta "Qué no es", el foco recorre las capas una por una
-const LAYER_STEP = (NOT_AT - CATEGORIES_AT) / LAYERS.length; // cuánto dura el foco en cada capa
-
-const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
-const seg = (p: number, a: number, b: number) => clamp((p - a) / (b - a));
-const ease = (t: number) => t * t * (3 - 2 * t);
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
-interface Caption {
-  at: number;
-  kicker: string;
-  title: ReactNode;
-  body: ReactNode;
+// Medidas que solo cambian al redimensionar: se guardan para no leer el layout en cada frame
+interface Metrics {
+  vw: number;
+  vh: number;
+  trackTop: number;
+  trackH: number;
+  W: number; // lado de la pila
+  Ew: number;
+  He: number; // ojo
+  Tw: number;
+  Ht: number; // bloque del título
+  Hc: number; // tarjeta
+  Wb: number;
+  Hb: number; // botón
+  slot: { x: number; y: number; w: number; h: number }; // hueco del ojo junto a PRISMA
+  lh: number; // alto de línea del titular
 }
 
-const CAPTIONS: Caption[] = [
-  {
-    at: 0.06,
-    kicker: "Cómo funciona - 1",
-    title: "Pega una noticia",
-    body: "Copia el texto o el enlace de algo que viste. No importa si es de un diario, un portal o una cadena de WhatsApp.",
-  },
-  {
-    at: 0.17,
-    kicker: "Cómo funciona - 2",
-    title: "Laya clasifica",
-    body: "Analiza el texto en varias dimensiones y, por cada una, devuelve un puntaje, qué tan segura está y la frase exacta en la que se apoyó.",
-  },
-  {
-    at: 0.29,
-    kicker: "Cómo funciona - 3",
-    title: "Ves las capas",
-    body: "El resultado se dibuja como flechas sobre planos apilados. Cada flecha indica hacia dónde se inclina la noticia en una dimensión.",
-  },
-  {
-    at: CATEGORIES_AT,
-    kicker: "Categorías",
-    title: "Capas: ejes que se contrarrestan",
-    body: "Cada capa es un plano con dos ejes y un extremo opuesto en cada uno. Laya da un valor entre -100% y +100% por eje. Una flecha larga significa una inclinación fuerte; una corta, una noticia casi neutral en esa capa.",
-  },
-  {
-    at: 0.53,
-    kicker: "Categorías",
-    title: "Temas y alertas",
-    body: (
-      <>
-        <p>
-          Los temas no se oponen: se reparten y suman 100%. Las alertas son la probabilidad de que el texto use cada técnica de manipulación, así que puede haber varias altas a la vez o ninguna.
-        </p>
-        <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
-          {/* en móvil solo las alertas, para no tapar la pila */}
-          <div className="max-sm:hidden">
-            <CompositionGroup title="Temas" items={sample.temas.slice(0, 3)} />
-          </div>
-          <CompositionGroup title="Alertas" items={sample.alertas.slice(0, 3)} />
-        </div>
-      </>
-    ),
-  },
-  {
-    at: 0.67,
-    kicker: "Qué es Prisma",
-    title: "Un prisma para las noticias",
-    body: "Como un prisma que separa la luz blanca en colores, descompone una noticia en sus partes para que puedas compararlas y notar patrones: qué medios empujan siempre hacia el mismo lado y qué temas llegan con miedo.",
-  },
-  {
-    at: NOT_AT,
-    kicker: "Qué no es",
-    title: "No es un árbitro de la verdad",
-    body: "Una IA puede equivocarse o inclinarse sin querer, y las personas tampoco siempre coinciden al juzgar un sesgo. Por eso cada resultado trae su evidencia y su nivel de confianza, para que lo discutas en vez de aceptarlo sin más.",
-  },
-];
+interface Hero {
+  top0: number;
+  cy0: number;
+  titleX: number;
+}
+
+interface Stack {
+  sc: number;
+  cx: number;
+  cy: number;
+  rx: number;
+  ex: number;
+  move: number;
+  read: number;
+  zTop: number;
+}
 
 export function ScrollStory() {
   const trackRef = useRef<HTMLElement>(null);
@@ -109,80 +69,81 @@ export function ScrollStory() {
 
   useLayoutEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const track = trackRef.current!, stage = stageRef.current!, stack = stackRef.current!;
+    const title = titleRef.current!, eye = eyeRef.current!, card = cardRef.current!;
+    const head = headRef.current!, scan = scanRef.current!, hint = hintRef.current!;
+    const cta = ctaRef.current!, slot = eyeSlotRef.current!;
+
+    let m: Metrics;
+    let lastP = -1;
     let raf = 0;
 
-    const update = () => {
-      raf = 0;
-      const track = trackRef.current!, stage = stageRef.current!, stack = stackRef.current!;
-      const title = titleRef.current!, eye = eyeRef.current!, card = cardRef.current!;
-      const head = headRef.current!, scan = scanRef.current!, hint = hintRef.current!;
-      const cta = ctaRef.current!;
+    const measure = () => {
+      m = {
+        vw: stage.clientWidth,
+        vh: stage.clientHeight,
+        trackTop: track.getBoundingClientRect().top + window.scrollY,
+        trackH: track.offsetHeight,
+        W: stack.offsetWidth,
+        Ew: eye.offsetWidth,
+        He: eye.offsetHeight,
+        Tw: title.offsetWidth,
+        Ht: title.offsetHeight,
+        Hc: card.offsetHeight,
+        Wb: cta.offsetWidth,
+        Hb: cta.offsetHeight,
+        slot: { x: slot.offsetLeft, y: slot.offsetTop, w: slot.offsetWidth, h: slot.offsetHeight },
+        lh: parseFloat(getComputedStyle(head).lineHeight) || 26,
+      };
+      lastP = -1; // con medidas nuevas hay que redibujar aunque el scroll no cambie
+    };
 
-      const vw = stage.clientWidth, vh = stage.clientHeight;
-      const r = track.getBoundingClientRect();
-      const p = clamp(-r.top / Math.max(1, r.height - vh));
+    // Título, botón y pista: se desvanecen al empezar a bajar
+    const placeHero = (p: number): Hero => {
+      const { vw, vh, Tw, Ht, Hc, Wb, Hb } = m;
+      const out = ease(seg(p, ...T.heroOut));
+      const lift = 40 * out;
+      const top0 = Math.max(72, (vh - (Ht + 2 * GAP + Hc + CTA_GAP + Hb)) / 2);
+      const cy0 = top0 + Ht + 2 * GAP + Hc / 2;
+      const titleX = vw / 2 - Tw / 2;
+
+      title.style.transform = `translate(${titleX}px, ${top0 - lift}px)`;
+      cta.style.transform = `translate(${vw / 2 - Wb / 2}px, ${cy0 + Hc / 2 + CTA_GAP - lift}px)`;
+      for (const el of [title, cta]) {
+        el.style.opacity = String(1 - out);
+        el.style.visibility = out >= 1 ? "hidden" : "visible";
+      }
+      hint.style.opacity = String(1 - seg(p, ...T.hint));
+      hint.style.visibility = p >= T.hint[1] ? "hidden" : "visible";
+
+      return { top0, cy0, titleX };
+    };
+
+    // Pila de capas y tarjeta del titular
+    const placeStack = (p: number, { cy0 }: Hero): Stack => {
+      const { vw, vh, W } = m;
       const lg = vw >= 1024, sm = vw >= 640;
+      const side = ease(seg(p, ...T.captionsIn));
+      const move = ease(seg(p, T.read[0], T.explode[1]));
+      const ex = ease(seg(p, ...T.explode));
+      const drift = reduce ? 0 : seg(p, T.explode[1], T.not);
+      const settle = seg(p, T.not, T.not + T.settle);
 
-      // Solo re-renderiza cuando cambia el subtítulo o la capa en foco
-      let s = -1;
-      CAPTIONS.forEach((c, i) => { if (p >= c.at) s = i; });
-      const f = p >= CATEGORIES_AT && p < NOT_AT ? Math.floor((p - CATEGORIES_AT) / LAYER_STEP) : -1;
-      setStep(s);
-      setFocus(f);
-
-      const W = stack.offsetWidth, He = eye.offsetHeight, Ew = eye.offsetWidth;
-      const Ht = title.offsetHeight, Tw = title.offsetWidth, Hc = card.offsetHeight;
-      const slot = eyeSlotRef.current!;
-      const g = 20;
-
-      const titleOut = ease(seg(p, 0.01, 0.07));
-      const side = ease(seg(p, 0.03, 0.08)); // entra la columna de subtítulos
-      const move = ease(seg(p, READ[0], EXPLODE[1]));
-      const ex = ease(seg(p, ...EXPLODE));
-      const drift = reduce ? 0 : seg(p, EXPLODE[1], NOT_AT);
-      const settle = seg(p, NOT_AT, NOT_AT + 0.08);
-
-      // Tamaño y ángulo de la pila
       const sc = lerp(1, lg ? 0.88 : sm ? 0.76 : 0.6, move);
       const rx = 58 * ex;
-      const rz = (45 + (reduce ? 0 : 25 * seg(p, EXPLODE[1], 1))) * ex;
+      const rz = (45 + (reduce ? 0 : 25 * seg(p, T.explode[1], 1))) * ex;
 
       // Cada plano se separa con su propio ritmo: ese desfase es el parallax
       const gap = W * 0.22;
       const zOf = (k: number) => {
-        const e = ease(seg(p, EXPLODE[0] + k * 0.014, EXPLODE[1] + k * 0.008));
+        const e = ease(seg(p, T.explode[0] + k * T.planeDelay, T.explode[1] + k * T.planeEndDelay));
         return (2 - k) * gap * e * (1 + 0.4 * drift * (1 + k * 0.15)) * (1 - 0.3 * settle);
       };
       const zTop = zOf(0);
 
-      // Posición: al inicio la tarjeta va debajo del título (con el ojo al lado); luego se centra
+      // Al inicio la tarjeta va debajo del título; luego se corre para dejar sitio a los subtítulos
       const cx = vw / 2 + (lg ? Math.min(vw * 0.18, 240) : -Math.min(28, vw * 0.07)) * side;
-      const Hb = cta.offsetHeight, Wb = cta.offsetWidth;
-      const top0 = Math.max(72, (vh - (Ht + 2 * g + Hc + g + Hb)) / 2);
-      const cy0 = top0 + Ht + 2 * g + Hc / 2;
       const cy = lerp(cy0, lg ? vh * 0.55 : vh * 0.4, move);
-      const titleX = vw / 2 - Tw / 2;
-
-      // El ojo sale de su hueco junto a PRISMA y se ubica encima de la tarjeta para leerla
-      const eyeT = ease(seg(p, 0.02, READ[0] + 0.03));
-      const above = sc * lerp(Hc / 2, W * (0.375 + (Math.sin((rx * Math.PI) / 180) * zTop) / W), ex);
-      const readerScale = lerp(lg ? 0.85 : 0.6, lg ? 0.6 : 0.42, move);
-      const es = lerp(slot.offsetWidth / Ew, readerScale, eyeT);
-      const eyeX = lerp(titleX + slot.offsetLeft + slot.offsetWidth / 2, cx, eyeT);
-      const eyeY = lerp(top0 + slot.offsetTop + slot.offsetHeight / 2, cy - above - g - (He * readerScale) / 2, eyeT);
-
-      title.style.transform = `translate(${titleX}px, ${top0 - 40 * titleOut}px)`;
-      title.style.opacity = String(1 - titleOut);
-      title.style.visibility = titleOut >= 1 ? "hidden" : "visible";
-
-      // Botón a las noticias: va debajo de la tarjeta y se va junto con el título
-      cta.style.transform = `translate(${vw / 2 - Wb / 2}px, ${cy0 + Hc / 2 + g - 40 * titleOut}px)`;
-      cta.style.opacity = String(1 - titleOut);
-      cta.style.visibility = titleOut >= 1 ? "hidden" : "visible";
-      hint.style.opacity = String(1 - seg(p, 0, 0.03));
-      hint.style.visibility = p >= 0.03 ? "hidden" : "visible";
-
-      eye.style.transform = `translate(${eyeX - Ew / 2}px, ${eyeY - He / 2}px) scale(${es})`;
 
       stack.style.transform = `translate(${cx - W / 2}px, ${cy - W / 2}px) perspective(1400px) scale(${sc}) rotateX(${rx}deg) rotateZ(${rz}deg)`;
       stack.style.setProperty("--rx", `${rx}deg`);
@@ -190,59 +151,97 @@ export function ScrollStory() {
       stack.style.setProperty("--isc", String(1 / sc));
 
       // Tarjeta del titular: lectura y luego queda como rastro arriba de la pila
-      const read = seg(p, READ[0] + 0.01, READ[1]);
+      const read = seg(p, ...T.scan);
       card.style.transform = `translateZ(${zTop}px) translateY(-50%)`;
-      card.style.opacity = String(1 - 0.85 * ease(seg(p, EXPLODE[0] + 0.03, EXPLODE[1])));
+      card.style.opacity = String(1 - 0.85 * ease(seg(p, ...T.cardOut)));
       scan.style.height = `${read * 100}%`;
-      scan.style.opacity = String(read > 0 ? 1 - seg(p, EXPLODE[0], EXPLODE[0] + 0.04) : 0);
+      scan.style.opacity = String(read > 0 ? 1 - seg(p, ...T.scanOut) : 0);
 
+      const labelsIn = String(seg(ex, 0.6, 1));
       LAYERS.forEach((_, i) => {
-        const layer = layerRefs.current[i], plane = planeRefs.current[i], label = labelRefs.current[i];
-        if (!layer || !plane || !label) return;
         const k = i + 1;
-        const vis = seg(p, EXPLODE[0] + k * 0.014, EXPLODE[0] + k * 0.014 + 0.04);
-        const dim = f < 0 || f === i ? 1 : 0.28;
-        layer.style.transform = `translateZ(${zOf(k)}px)`;
-        plane.style.opacity = String(vis * dim);
-        label.style.opacity = String(seg(ex, 0.6, 1) * (f < 0 || f === i ? 1 : 0.35));
+        const start = T.explode[0] + k * T.planeDelay;
+        layerRefs.current[i]!.style.transform = `translateZ(${zOf(k)}px)`;
+        planeRefs.current[i]!.style.opacity = String(seg(p, start, start + T.planeFade));
+        labelRefs.current[i]!.style.opacity = labelsIn;
       });
 
-      // A dónde mira el ojo: el puntero, luego el renglón que lee, luego la capa en foco
-      if (p < READ[0]) {
+      return { sc, cx, cy, rx, ex, move, read, zTop };
+    };
+
+    // El ojo sale de su hueco junto a PRISMA y se ubica encima de la tarjeta para leerla
+    const placeEye = (p: number, hero: Hero, st: Stack) => {
+      const { vw, W, Ew, He, Hc, slot: s } = m;
+      const lg = vw >= 1024;
+      const t = ease(seg(p, ...T.eyeIn));
+      const above = st.sc * lerp(Hc / 2, W * (0.375 + (Math.sin((st.rx * Math.PI) / 180) * st.zTop) / W), st.ex);
+      const readerScale = lerp(lg ? 0.85 : 0.6, lg ? 0.6 : 0.42, st.move);
+      const es = lerp(s.w / Ew, readerScale, t);
+      const x = lerp(hero.titleX + s.x + s.w / 2, st.cx, t);
+      const y = lerp(hero.top0 + s.y + s.h / 2, st.cy - above - GAP - (He * readerScale) / 2, t);
+      eye.style.transform = `translate(${x - Ew / 2}px, ${y - He / 2}px) scale(${es})`;
+    };
+
+    // A dónde mira el ojo: el puntero, luego el renglón que lee, luego la capa en foco
+    const aimEye = (rect: DOMRect | null, reading: boolean, st: Stack) => {
+      if (!rect) {
         gaze.current = null;
-      } else if (p < EXPLODE[0]) {
-        const hr = head.getBoundingClientRect();
-        const lh = parseFloat(getComputedStyle(head).lineHeight) * sc || 26;
-        const lines = Math.max(1, Math.round(hr.height / lh));
-        const t = read * lines;
+      } else if (reading) {
+        const lines = Math.max(1, Math.round(rect.height / (m.lh * st.sc)));
+        const t = st.read * lines;
         const line = Math.min(lines - 1, Math.floor(t));
         gaze.current = {
-          x: hr.left + hr.width * (0.05 + 0.9 * (t - line)),
-          y: hr.top + (hr.height * (line + 0.5)) / lines,
+          x: rect.left + rect.width * (0.05 + 0.9 * (t - line)),
+          y: rect.top + (rect.height * (line + 0.5)) / lines,
         };
       } else {
-        const target = f >= 0 ? labelRefs.current[f] : stack;
-        const tr = target!.getBoundingClientRect();
-        gaze.current = { x: tr.left + tr.width / 2, y: tr.top + tr.height / 2 };
+        gaze.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
       }
     };
 
+    const update = () => {
+      raf = 0;
+      const p = clamp((window.scrollY - m.trackTop) / Math.max(1, m.trackH - m.vh));
+      if (p === lastP) return; // antes o después de la sección no hay nada que mover
+      lastP = p;
+
+      // Solo re-renderiza cuando cambia el subtítulo o la capa en foco
+      let s = -1;
+      CAPTIONS.forEach((c, i) => { if (p >= c.at) s = i; });
+      const f = p >= T.categories && p < T.not ? Math.floor((p - T.categories) / LAYER_STEP) : -1;
+      setStep(s);
+      setFocus(f);
+
+      // Se lee el layout antes de escribir estilos, así el navegador no lo recalcula a mitad del frame
+      const reading = p >= T.read[0] && p < T.explode[0];
+      const target = reading ? head : f >= 0 ? labelRefs.current[f] : stack;
+      const rect = p >= T.read[0] && target ? target.getBoundingClientRect() : null;
+
+      const hero = placeHero(p);
+      const st = placeStack(p, hero);
+      placeEye(p, hero, st);
+      aimEye(rect, reading, st);
+    };
+
     const schedule = () => { if (!raf) raf = requestAnimationFrame(update); };
+    measure();
     update();
+
+    const ro = new ResizeObserver(() => { measure(); schedule(); });
+    for (const el of [stage, title, card, cta, eye, stack]) ro.observe(el);
     window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
     return () => {
       cancelAnimationFrame(raf);
+      ro.disconnect();
       window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
     };
   }, []);
 
   return (
     <section ref={trackRef} aria-label="Cómo Prisma lee una noticia" className="relative h-[680svh] border-b border-border">
-      {/* anclas del menú, ubicadas en su punto del recorrido */}
-      <span id="how-it-works" className="absolute" style={{ top: "calc(0.075 * (100% - 100svh))" }} />
-      <span id="categories" className="absolute" style={{ top: "calc(0.405 * (100% - 100svh))" }} />
+      {MENU_ANCHORS.map((a) => (
+        <span key={a.id} id={a.id} className="absolute" style={{ top: `calc(${a.at} * (100% - 100svh))` }} />
+      ))}
 
       <div ref={stageRef} className="sticky top-0 h-svh overflow-hidden">
         <div className="bg-grid absolute inset-0" aria-hidden="true" />
@@ -267,36 +266,40 @@ export function ScrollStory() {
           ref={stackRef}
           className="absolute top-0 left-0 aspect-square w-[min(72vw,300px)] origin-center will-change-transform transform-3d"
         >
-          {LAYERS.map((l, i) => (
-            <div
-              key={l.id}
-              ref={(el) => { layerRefs.current[i] = el; }}
-              className="absolute inset-0 transform-3d"
-              aria-hidden="true"
-            >
+          {LAYERS.map((l, i) => {
+            const dimmed = focus >= 0 && focus !== i;
+            return (
               <div
-                ref={(el) => { planeRefs.current[i] = el; }}
-                className="absolute inset-0 opacity-0 transition-opacity duration-300 motion-reduce:transition-none"
+                key={l.id}
+                ref={(el) => { layerRefs.current[i] = el; }}
+                className="absolute inset-0 transform-3d"
+                aria-hidden="true"
               >
-                <MiniPlane x={sample.values[l.id].x} y={sample.values[l.id].y} color={l.color} />
-              </div>
-              <div
-                ref={(el) => { labelRefs.current[i] = el; }}
-                className="absolute top-[6%] left-[94%] origin-top-left whitespace-nowrap opacity-0 transition-opacity duration-300 motion-reduce:transition-none"
-                style={{ transform: "rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) scale(var(--isc)) translate(12px, -50%)" }}
-              >
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-md border bg-background/80 px-2 py-1 text-xs font-medium backdrop-blur-sm",
-                    focus === i ? "border-foreground" : "border-border",
-                  )}
+                {/* la opacidad de entrada la pone el scroll; la del foco, una transición */}
+                <div ref={(el) => { planeRefs.current[i] = el; }} className="absolute inset-0 opacity-0">
+                  <div className={cn("absolute inset-0 transition-opacity duration-300 motion-reduce:transition-none", dimmed && "opacity-28")}>
+                    <MiniPlane x={sample.values[l.id].x} y={sample.values[l.id].y} color={l.color} />
+                  </div>
+                </div>
+                <div
+                  ref={(el) => { labelRefs.current[i] = el; }}
+                  className="absolute top-[6%] left-[94%] origin-top-left whitespace-nowrap opacity-0"
+                  style={{ transform: "rotateZ(calc(var(--rz) * -1)) rotateX(calc(var(--rx) * -1)) scale(var(--isc)) translate(12px, -50%)" }}
                 >
-                  <span className="size-2 rounded-sm" style={{ background: l.color }} />
-                  {l.name}
-                </span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-md border bg-background/90 px-2 py-1 text-xs font-medium transition-opacity duration-300 motion-reduce:transition-none",
+                      focus === i ? "border-foreground" : "border-border",
+                      dimmed && "opacity-35",
+                    )}
+                  >
+                    <span className="size-2 rounded-sm" style={{ background: l.color }} />
+                    {l.name}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div ref={cardRef} className="absolute -inset-x-8 top-1/2 flex flex-col gap-4 rounded-xl border border-border bg-card p-5 shadow-sm">
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -332,16 +335,14 @@ export function ScrollStory() {
           ))}
         </div>
 
-        <a ref={ctaRef} href="#news" className={cn(buttonVariants({ size: "lg" }), "absolute mt-6 top-0 left-0 will-change-transform")}>
+        <a ref={ctaRef} href="#news" className={cn(buttonVariants({ size: "lg" }), "absolute top-0 left-0 will-change-transform")}>
           Analizar noticias
           <ArrowDown />
         </a>
 
-        <div ref={hintRef} className="absolute inset-x-0 bottom-6 flex flex-col items-center gap-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            Desliza para ver cómo la lee
-            <ArrowDown className="size-3.5 animate-bounce motion-reduce:animate-none" aria-hidden="true" />
-          </span>
+        <div ref={hintRef} className="absolute inset-x-0 bottom-6 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+          Desliza para ver cómo la lee
+          <ArrowDown className="size-3.5 animate-bounce motion-reduce:animate-none" aria-hidden="true" />
         </div>
       </div>
     </section>
